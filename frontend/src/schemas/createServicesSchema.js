@@ -9,10 +9,6 @@ export const createServicesSchema = z.object({
     (val) => Number(val),
     z.number().nonnegative("Enter a valid non-negative number")
   ),
-  // Provider contact information fields
-  providerName: z.string().min(2, "Provider name is required"),
-  providerEmail: z.string().email("Please enter a valid email address"),
-  providerContact: z.string().min(10, "Contact number must be at least 10 digits"),
   image: z
     .instanceof(File, { message: "Image is required" })
     .refine((file) => file.type.startsWith("image/"), {

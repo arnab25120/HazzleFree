@@ -6,25 +6,32 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Please enter your name"],
+      required: [true, "Name is required"],
       trim: true,
+      minlength: [2, "Name must be at least 2 characters"],
+      maxlength: [50, "Name cannot exceed 50 characters"],
     },
     email: {
       type: String,
-      required: [true, "Please enter your email"],
+      required: [true, "Email is required"],
       unique: true,
       lowercase: true,
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
       index: true,
     },
     password: {
       type: String,
-      required: [true, "Please enter your password"],
+      required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
-      select: false, // do not return password by default
+      select: false,
     },
     role: {
       type: String,
-      enum: ["consumer", "provider"],
+      enum: {
+        values: ["consumer", "provider"],
+        message: "{VALUE} is not a valid role",
+      },
       default: "consumer",
     },
     isAdmin: {
@@ -33,6 +40,7 @@ const userSchema = new mongoose.Schema(
     },
     location: {
       type: String,
+      trim: true,
       default: "",
     },
     contactNumber: {
@@ -40,18 +48,7 @@ const userSchema = new mongoose.Schema(
       required: function() {
         return this.role === "provider";
       },
-      validate: {
-        validator: function(v) {
-          // Only validate if role is provider and contactNumber is provided
-          if (this.role === "provider" && v) {
-            return /^[\d\s\-\+\(\)]+$/.test(v) && v.replace(/\D/g, '').length >= 10;
-          }
-          return true;
-        },
-        message: "Contact number must be valid and at least 10 digits for providers"
-      }
     },
-    // Additional provider-specific fields
     profileImage: {
       type: String,
       default: "",
@@ -61,68 +58,55 @@ const userSchema = new mongoose.Schema(
       default: "",
       maxlength: [500, "Bio cannot exceed 500 characters"],
     },
-    // Services provided by this user (if provider)
-    services: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Service",
-    }],
     isActive: {
       type: Boolean,
       default: true,
     },
     refreshToken: {
       type: String,
+      select: false,
     },
-    // Email verification
     isEmailVerified: {
       type: Boolean,
       default: false,
     },
     emailVerificationToken: {
       type: String,
+      select: false,
     },
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
-// Indexes for better performance
+// Indexes
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ location: 1 });
 
+// Virtual for services count (for providers)
+userSchema.virtual('servicesCount', {
+  ref: 'Service',
+  localField: '_id',
+  foreignField: 'provider',
+  count: true
+});
+
+// Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-// Custom methods
+// Compare password method
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-// For backward compatibility with existing Auth controller
-userSchema.methods.matchPassword = async function (password) {
-  return await bcrypt.compare(password, this.password);
-};
-
-userSchema.methods.generateToken = function () {
-  return jwt.sign(
-    {
-      _id: this._id,
-      email: this.email,
-      name: this.name,
-      role: this.role,
-      isAdmin: this.isAdmin,
-    },
-    process.env.ACCESS_TOKEN_SECRET || "your-secret-key",
-    {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "1d",
-    }
-  );
-};
-
-// Access token
+// Generate access token
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
@@ -134,12 +118,12 @@ userSchema.methods.generateAccessToken = function () {
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "1d",
     }
   );
 };
 
-// Refresh token
+// Generate refresh token
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
@@ -147,7 +131,7 @@ userSchema.methods.generateRefreshToken = function () {
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d",
     }
   );
 };

@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { Service } from "../models/service.models.js";
+import { Service } from "../models/service.model.js";
 import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
@@ -144,14 +144,14 @@ const getServicesByCategory = asyncHandler(async (req, res) => {
 
 // Create service (provider only)
 const createService = asyncHandler(async (req, res) => {
-  const { title, description, category, location, price, providerName, providerEmail, providerContact } = req.body;
+  const { title, description, category, location, price } = req.body;
   const providerId = req.user._id;
   
   const localImagePath = req.file?.path;
 
   // Validation
-  if (!title || !description || !category || !location || !price || !providerName || !providerEmail || !providerContact) {
-    throw new ApiError(400, "All fields are required including provider contact information");
+  if (!title || !description || !category || !location || !price) {
+    throw new ApiError(400, "All fields are required");
   }
 
   // Validate category
@@ -175,17 +175,6 @@ const createService = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Price must be a positive number");
   }
 
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(providerEmail)) {
-    throw new ApiError(400, "Please provide a valid email address");
-  }
-
-  // Validate contact number (basic validation)
-  if (providerContact.length < 10) {
-    throw new ApiError(400, "Contact number must be at least 10 digits");
-  }
-
   let imageUrl = "";
   if (localImagePath) {
     const uploadedImage = await uploadOnCloudinary(localImagePath);
@@ -203,11 +192,6 @@ const createService = asyncHandler(async (req, res) => {
     price: Number(price),
     imageUrl,
     provider: providerId,
-    providerContact: {
-      name: providerName.trim(),
-      email: providerEmail.toLowerCase().trim(),
-      contactNumber: providerContact.trim(),
-    },
   };
 
   const service = await Service.create(serviceData);
@@ -220,7 +204,7 @@ const createService = asyncHandler(async (req, res) => {
 // Update service (provider only - own services)
 const updateService = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { title, description, category, location, price, providerName, providerEmail, providerContact } = req.body;
+  const { title, description, category, location, price } = req.body;
   const providerId = req.user._id;
 
   if (!isValidObjectId(id)) {
@@ -279,34 +263,6 @@ const updateService = asyncHandler(async (req, res) => {
       throw new ApiError(400, "Price must be a positive number");
     }
     updateData.price = Number(price);
-  }
-
-  // Update provider contact info
-  const providerContactUpdate = {};
-  if (providerName !== undefined) {
-    if (!providerName.trim()) {
-      throw new ApiError(400, "Provider name cannot be empty");
-    }
-    providerContactUpdate.name = providerName.trim();
-  }
-
-  if (providerEmail !== undefined) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(providerEmail)) {
-      throw new ApiError(400, "Please provide a valid email address");
-    }
-    providerContactUpdate.email = providerEmail.toLowerCase().trim();
-  }
-
-  if (providerContact !== undefined) {
-    if (providerContact.length < 10) {
-      throw new ApiError(400, "Contact number must be at least 10 digits");
-    }
-    providerContactUpdate.contactNumber = providerContact.trim();
-  }
-
-  if (Object.keys(providerContactUpdate).length > 0) {
-    updateData.providerContact = { ...service.providerContact, ...providerContactUpdate };
   }
 
   // Handle image update

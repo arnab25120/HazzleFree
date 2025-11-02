@@ -13,6 +13,7 @@ const categories = [
   "Mechanic",
   "Grocery",
   "Painter",
+  "Cleaning"
 ];
 
 const CreateService = () => {

@@ -21,15 +21,17 @@ const Register = () => {
       password: "",
       confirmPassword: "",
       role: "consumer",
+      contactNumber: "",
     },
   });
 
   const onSubmit = async (data) => {
+    console.log("Form submitted:", data);
     const { confirmPassword, ...formData } = data;
 
     try {
-      const response=await registerUser(formData);
-      const user=response?.data?.data?.user;
+      const response = await registerUser(formData);
+      const user = response?.data?.data?.user;
       setUser(user);
       toast.success("Registration successful.");
       navigate("/");
@@ -60,15 +62,32 @@ const Register = () => {
               <p className="text-red-500 text-sm">{errors.name.message}</p>
             )}
           </div>
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-700">
+              Contact Number
+            </label>
+            <input
+              type="tel"
+              {...register("contactNumber")}
+              className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter your contact number"
+            />
+            {errors.contactNumber && (
+              <p className="text-red-500 text-sm">
+                {errors.contactNumber.message}
+              </p>
+            )}
+          </div>
 
           <div>
             <label className="block mb-1 text-sm font-medium text-gray-700">
-              Email
+              Email Address
             </label>
             <input
               type="email"
               {...register("email")}
               className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter your email"
             />
             {errors.email && (
               <p className="text-red-500 text-sm">{errors.email.message}</p>

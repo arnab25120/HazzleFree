@@ -33,33 +33,49 @@ const generateAccessAndRefreshToken=async(userId)=>{
 
 //register User
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password,role } = req.body;
+  const { name, email, password, role, contactNumber } = req.body;
 
+  // Log to debug
+  console.log("Register request body:", req.body);
+
+  // Basic validation
   if ([name, email, password].some((field) => field?.trim() === "")) {
     throw new ApiError(400, "All fields are required");
   }
 
-  if(!role || !["consumer","provider"].includes(role)){
-    throw new ApiError(400,"Role must be either consumer or provider")
+  if (!role || !["consumer", "provider"].includes(role)) {
+    throw new ApiError(400, "Role must be either consumer or provider");
   }
 
-  const existedUser = await User.findOne({
-    email
-  });
+  // If provider, contactNumber is required
+  if (role === "provider" && (!contactNumber || contactNumber.trim() === "")) {
+    throw new ApiError(400, "Contact number is required for providers");
+  }
 
+  const existedUser = await User.findOne({ email });
   if (existedUser) {
     throw new ApiError(400, "User with this email already exists");
   }
 
-  const user = await User.create({ name, email, password,role});
+  // ✅ Include contactNumber when creating the user
+  const user = await User.create({
+    name,
+    email,
+    password,
+    role,
+    contactNumber: role === "provider" ? contactNumber : undefined,
+  });
 
-  //create token
+  if (!user) throw new ApiError(500, "User could not be created");
+
+  // Generate tokens
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
-  //Set refreshToken in cookie
+  // Set refreshToken in cookie
   res.cookie("refreshToken", refreshToken, cookieOptions);
 
-  res.status(201).json(
+  // Response
+  return res.status(201).json(
     new ApiResponse(
       201,
       {
@@ -67,7 +83,8 @@ const registerUser = asyncHandler(async (req, res) => {
           _id: user._id,
           name: user.name,
           email: user.email,
-          role:user.role,
+          role: user.role,
+          contactNumber: user.contactNumber,
           isAdmin: user.isAdmin,
         },
         accessToken,
@@ -76,6 +93,7 @@ const registerUser = asyncHandler(async (req, res) => {
     )
   );
 });
+
 
 //LoginUser
 const loginUser = asyncHandler(async (req, res) => {

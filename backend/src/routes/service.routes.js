@@ -26,7 +26,7 @@ router.route("/category/:category").get(getServicesByCategory);
 router.route("/provider/create").post(
   verifyJWT,
   verifyProvider,
-  upload.single("serviceImage"),
+  upload.single("image"),
   createService
 );
 
@@ -39,7 +39,7 @@ router.route("/provider/my-services").get(
 router.route("/provider/:id").patch(
   verifyJWT,
   verifyProvider,
-  upload.single("serviceImage"),
+  upload.single("image"),
   updateService
 );
 

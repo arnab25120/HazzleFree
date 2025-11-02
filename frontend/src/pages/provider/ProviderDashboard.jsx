@@ -25,8 +25,8 @@ const ProviderDashboard = () => {
       console.log('Services data:', res.data?.data);
       
       // Extract services and pagination from the correct path
-      const servicesData = res?.data?.services;
-      const paginationData = res?.data?.pagination;
+      const servicesData = res?.data?.data?.services;
+      const paginationData = res?.data?.data?.pagination;
       
       // Ensure we always set an array
       if (Array.isArray(servicesData)) {
