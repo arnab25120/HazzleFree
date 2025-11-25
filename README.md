@@ -65,5 +65,4 @@ Provider ➝ Submit Service ➝ Admin Approves ➝ Visible to Consumers
 
 ---
 
-## 📂 Folder Structure
 
