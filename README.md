@@ -1,4 +1,4 @@
-# 🔧 Haazl – Local Service Marketplace (MERN Stack)
+# 🔧 HazzlFree – Local Service Marketplace (MERN Stack)
 
 A complete **service marketplace** application built using the **MERN Stack**.  
 Users can register as **Service Providers** (e.g., plumbers, electricians) or **Consumers** looking for services.  
